@@ -97,18 +97,36 @@ class HomeScreen extends StatelessWidget {
           ),
 
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              itemCount: jobs.length,
-              itemBuilder: (context, index) {
-                final job = jobs[index];
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                if (constraints.maxWidth < 600) {
+                  return ListView.builder(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    itemCount: jobs.length,
+                    itemBuilder: (context, index) => _buildCard(context, index),
+                  );
+                }
 
-                return JobCard(job: job);
+                return GridView.builder(
+                  padding: const EdgeInsets.all(8),
+                  itemCount: jobs.length,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    childAspectRatio: 0.75, //from question 2
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 8,
+                  ),
+                  itemBuilder: (context, index) => _buildCard(context, index),
+                );
               },
             ),
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildCard(BuildContext context, int index) {
+    return JobCard(job: jobs[index]);
   }
 }
