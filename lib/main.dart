@@ -24,9 +24,9 @@ class CareerHubApp extends StatelessWidget {
 }
 
 class HomeScreen extends StatelessWidget {
-  HomeScreen({super.key});
+  const HomeScreen({super.key});
 
-  final List<Job> jobs = [
+  static final List<Job> jobs = [
     Job(
       title: "Flutter Developer",
       company: "Tech Solutions",
@@ -68,11 +68,34 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("CareerHub Jobs")),
-      body: ListView.builder(
-        itemCount: jobs.length,
-        itemBuilder: (context, index) {
-          return JobCard(job: jobs[index]);
-        },
+      body: Column(
+        children: [
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.all(8),
+            child: Row(
+              children: const [
+                Chip(label: Text('All')),
+                SizedBox(width: 8),
+                Chip(label: Text('Remote')),
+                SizedBox(width: 8),
+                Chip(label: Text('Full-time')),
+              ],
+            ),
+          ),
+
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              itemCount: jobs.length,
+              itemBuilder: (context, index) {
+                final job = jobs[index];
+
+                return JobCard(job: job);
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
