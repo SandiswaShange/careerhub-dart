@@ -14,11 +14,23 @@ class CareerHubApp extends StatelessWidget {
     return MaterialApp(
       title: 'CareerHub',
       debugShowCheckedModeBanner: false,
+
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
       ),
-      home: HomeScreen(),
+
+      darkTheme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.teal,
+          brightness: Brightness.dark,
+        ),
+      ),
+
+      themeMode: ThemeMode.system,
+
+      home: const HomeScreen(),
     );
   }
 }
