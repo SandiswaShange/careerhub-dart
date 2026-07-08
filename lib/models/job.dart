@@ -25,7 +25,7 @@ class Job {
     required String company,
     String? salary,
     required String description,
-    required DateTime? closingDate,
+    DateTime? closingDate,
     bool isOpen = true,
   }) : this(
          title: title,
