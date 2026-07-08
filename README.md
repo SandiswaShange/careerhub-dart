@@ -85,7 +85,7 @@ Badge text → colorScheme.onPrimaryContainer
 
 Because these colours come from the application's ColorScheme, they automatically adapt when switching between light and dark themes, so no changes are required when enabling darkTheme and themeMode: ThemeMode.system
 
-## Question 4 — The extraction decision
+## The extraction decision
 
 I chose to extract the JobStatusBadge widget.
 
