@@ -104,3 +104,6 @@ The widget depends only on the employment type passed into it. It does not rely 
 Since all three criteria are satisfied, extracting the widget is justified.
 
 If I did not extract it, the cost would not primarily be additional lines of code. Instead, JobCard would become responsible for both laying out the job information and implementing badge presentation, reducing clarity. Reusing the badge elsewhere would require duplicating its implementation, increasing maintenance effort and making isolated testing more difficult.
+
+## Dark mode works
+![alt text](image-1.png)
