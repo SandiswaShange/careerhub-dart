@@ -1,9 +1,11 @@
+import 'package:careerhub/providers/job_providers.dart';
 import 'package:flutter/material.dart';
 import 'models/job.dart';
 import 'widgets/job_card.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 void main() {
-  runApp(const CareerHubApp());
+  runApp(const ProviderScope(child: CareerHubApp()));
 }
 
 class CareerHubApp extends StatelessWidget {
@@ -35,49 +37,13 @@ class CareerHubApp extends StatelessWidget {
   }
 }
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
-  static final List<Job> jobs = [
-    Job(
-      title: "Flutter Developer",
-      company: "Tech Solutions",
-      location: "Cape Town",
-      salary: "R35 000 per month",
-      description: "Build Flutter applications.",
-      employmentType: "Full-time",
-      isOpen: true,
-      closingDate: null,
-    ),
-
-    Job(
-      title: "Junior Developer",
-      company: "Creative Apps",
-      location: "Durban",
-      description: "Entry-level software development role.",
-      employmentType: "Full-time",
-      isOpen: true,
-    ),
-
-    Job.closed(
-      title: "Backend Developer",
-      company: "Cloud Systems",
-      location: "Pretoria",
-      salary: "R45 000 per month",
-      description: "Maintain backend services.",
-      employmentType: "Full-time",
-    ),
-
-    Job.remote(
-      title: "UI Designer",
-      company: "Remote Tech",
-      salary: "R40 000 per month",
-      description: "Design user interfaces.",
-    ),
-  ];
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final jobsAsync = ref.watch(filteredJobsProvider);
+    final selectedFilter = ref.watch(selectedFilterProvider);
     return Scaffold(
       appBar: AppBar(title: const Text("CareerHub Jobs")),
       body: Column(
@@ -96,14 +62,43 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
 
-          Expanded(
-            child: LayoutBuilder(
+      Expanded(
+        child: jobsAsync.when(
+          loading: () => const Center(
+            child: CircularProgressIndicator(),
+          ),
+
+          error: (error, stack) => Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline),
+                const SizedBox(height: 8),
+                const Text("Failed to load jobs"),
+                const SizedBox(height: 8),
+                ElevatedButton(
+                  onPressed: () => ref.refresh(jobsProvider),
+                  child: const Text("Retry"),
+                ),
+              ],
+            ),
+          ),
+
+          data: (jobs) {
+            if (jobs.isEmpty) {
+              return const Center(
+                child: Text("No jobs match this filter."),
+              );
+            }
+
+            return LayoutBuilder(
               builder: (context, constraints) {
                 if (constraints.maxWidth < 600) {
                   return ListView.builder(
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     itemCount: jobs.length,
-                    itemBuilder: (context, index) => _buildCard(context, index),
+                    itemBuilder: (context, index) =>
+                        _buildCard(context, jobs, index),
                   );
                 }
 
@@ -112,21 +107,28 @@ class HomeScreen extends StatelessWidget {
                   itemCount: jobs.length,
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
-                    childAspectRatio: 0.75, //from question 2
+                    childAspectRatio: 0.75,
                     crossAxisSpacing: 8,
                     mainAxisSpacing: 8,
                   ),
-                  itemBuilder: (context, index) => _buildCard(context, index),
+                  itemBuilder: (context, index) =>
+                      _buildCard(context, jobs, index),
                 );
               },
-            ),
-          ),
+            );
+          },
+        ),
+      )
         ],
       ),
     );
   }
 
-  Widget _buildCard(BuildContext context, int index) {
-    return JobCard(job: jobs[index]);
-  }
+    Widget _buildCard(
+      BuildContext context,
+      List<Job> jobs,
+      int index,
+    ) {
+      return JobCard(job: jobs[index]);
+    }
 }
