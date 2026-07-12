@@ -107,3 +107,27 @@ If I did not extract it, the cost would not primarily be additional lines of cod
 
 ## Dark mode works
 ![alt text](image-1.png)
+
+## ref.watch vs ref.read
+ref.watch is used when a widget depends on a provider's value to build its user interface because it subscribes the widget to changes and automatically rebuilds it whenever that provider updates. This behaviour makes it inappropriate inside event callbacks such as onSelected, since callbacks are one-time actions rather than part of the widget's build process, and subscribing there would create unnecessary dependencies without rebuilding anything useful. Conversely, ref.read simply retrieves the current provider without listening for future changes, making it ideal for callbacks that only need to trigger an action such as changing the selected filter. If ref.read were used inside build(), the interface would not rebuild when the provider changed, so tapping a filter chip would appear to have no effect until another unrelated rebuild occurred. If ref.watch were incorrectly used inside a callback, the callback would unnecessarily depend on provider updates even though it is not responsible for rendering the interface, leading to incorrect usage of Riverpod's reactive model.
+
+## Choosing the right provider
+For a full list of jobs, I'll use FutureProvider<List<Job>> because the jobs are loaded asynchronously and Riverpod automatically exposes loading, error, and data states through AsyncValue.
+For a currently selected filter, I'll use StateProvider<String?> because it stores a single mutable value that changes when the user selects a different filter chip.
+However, for a filtered list, I'll probably go with Provider<List<Job>> because it is derived entirely from the jobs list and the selected filter, so it should be computed automatically rather than stored separately.
+
+Storing the filtered list in its own StateProvider<List<Job>> introduces a state synchronisation (duplicated state) bug. Because the filtered list duplicates information that can already be derived from the jobs and filter providers, it can become inconsistent if one of those changes without updating the filtered list. For example, if the user selects the "Remote" filter while new jobs finish loading from the repository, the jobs provider may contain the latest data but the manually maintained filtered list may still contain the previous results, causing the UI to display outdated or incorrect job listings.
+
+## AsyncValue and the UI contract
+When the AsyncValue is in the loading state, the UI should display a loading indicator such as a CircularProgressIndicator so the user knows that work is in progress rather than assuming the application has frozen.
+
+When the AsyncValue is in the error state, the UI should display an error message together with a retry option so the user understands that the request failed and has a clear way to try again.
+
+When the AsyncValue is in the data state, the UI should display the filtered list of jobs because the requested information has been successfully loaded.
+
+Within the data state, the widget must also check whether the filtered list is empty. If this check is forgotten, the user will simply see a blank screen after selecting a filter that matches no jobs, making it appear as though the application is broken. Instead, the UI should display an empty-state message informing the user that no jobs match the selected filter and encouraging them to try another filter.
+
+## What my test is about to break and why
+The first failure occurs because HomeScreen becomes a ConsumerWidget that depends on Riverpod providers. Pumping the widget without a ProviderScope means no provider container exists, causing the test to fail before the widget can build. The test should therefore wrap HomeScreen in a ProviderScope (or an overridden ProviderScope if mock providers are required).
+
+The second failure occurs because the jobs are no longer available immediately; they are loaded asynchronously through a FutureProvider. Immediately checking for job cards after pumpWidget() will still find the loading state rather than the completed data. The test must allow the future to complete by calling pump() or pumpAndSettle() (or pumping for the simulated delay) before asserting that the job cards are present
