@@ -131,3 +131,12 @@ Within the data state, the widget must also check whether the filtered list is e
 The first failure occurs because HomeScreen becomes a ConsumerWidget that depends on Riverpod providers. Pumping the widget without a ProviderScope means no provider container exists, causing the test to fail before the widget can build. The test should therefore wrap HomeScreen in a ProviderScope (or an overridden ProviderScope if mock providers are required).
 
 The second failure occurs because the jobs are no longer available immediately; they are loaded asynchronously through a FutureProvider. Immediately checking for job cards after pumpWidget() will still find the loading state rather than the completed data. The test must allow the future to complete by calling pump() or pumpAndSettle() (or pumping for the simulated delay) before asserting that the job cards are present
+
+## Loading Screen
+![Loading Screen](image-4.png)
+
+## Full list
+![Full list](image-2.png)
+
+## Filter applied
+![Filter applied](image-3.png)
