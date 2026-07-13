@@ -28,6 +28,7 @@ final jobsProvider = FutureProvider<List<Job>>((ref) async {
     ),
 
     Job.closed(
+      id: 3,
       title: "Backend Developer",
       company: "Cloud Systems",
       location: "Pretoria",
@@ -37,7 +38,7 @@ final jobsProvider = FutureProvider<List<Job>>((ref) async {
     ),
 
     Job.remote(
-      id: 3,
+      id: 4,
       title: "UI Designer",
       company: "Remote Tech",
       salary: "R40 000 per month",

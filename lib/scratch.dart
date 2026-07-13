@@ -24,6 +24,7 @@ void main() {
   );
 
   final job3 = Job.closed(
+    id: 3,
     title: "Backend Developer",
     company: "Cloud Systems",
     location: "Pretoria",

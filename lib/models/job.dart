@@ -44,6 +44,7 @@ class Job {
 
   /// Creates a job that is already closed.
   Job.closed({
+    required int id,
     required String title,
     required String company,
     required String location,
@@ -52,7 +53,7 @@ class Job {
     required String employmentType,
     DateTime? closingDate,
   }) : this(
-         id: 0,
+         id: id,
          title: title,
          company: company,
          location: location,
