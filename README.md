@@ -234,3 +234,13 @@ When the app changes from MaterialApp to MaterialApp.router, navigation is no lo
 GoRouter uses the initialLocation property to decide which route is displayed when the application starts. If the router's initialLocation is set to /jobs, then pumping the app in a widget test will open the JobsScreen first.
 
 Since the existing widget test checks that the jobs list and its job cards are displayed, and the app now starts on /jobs, the test should still land on the correct screen. Therefore, no changes are required to the test assertions simply to see the jobs list, provided that /jobs remains the router's initial location. The only change is that the app is now initialized through the router instead of directly through a home widget.
+
+## Detail Screen Screnshot
+![Detail Screen Screnshot](image-5.png)
+
+
+## From Job Detail to Saved tab, back to job detail
+
+![Detail Screen Screnshot](image-5.png)
+![saved jobs](image-6.png)
+![back to job detail](image-7.png)
