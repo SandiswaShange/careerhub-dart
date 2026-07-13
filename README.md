@@ -140,3 +140,97 @@ The second failure occurs because the jobs are no longer available immediately; 
 
 ## Filter applied
 ![Filter applied](image-3.png)
+
+## Route tree
+Outside StatefulShellRoute
+/
+└── StatefulShellRoute
+    ├── /jobs
+    │   ├── Screen: JobsScreen
+    │   └── /jobs/:id
+    │       └── Screen: JobDetailScreen
+    │
+    └── /bookmarks
+        └── Screen: BookmarksScreen
+
+## Should the Job Detail screen be inside or outside the StatefulShellRoute?
+
+My job detail screen will be inside the StatefulShellRoute so that the NavigationBar remains visible while viewing a job. This lets users quickly switch to another section of the app, such as Bookmarks, without first navigating back to the jobs list. It also provides a consistent navigation experience because the main sections of the application remain accessible.
+A good example is the YouTube app. When a user opens a video's details, the bottom navigation bar is still visible, allowing them to move directly to Home, Subscriptions, or Library without returning to the previous screen. CareerHub benefits from the same approach by keeping navigation available while viewing a job listing.
+
+## What URL is active when the app first opens?
+
+/jobs is the main entry point where users can browse available job listings.
+
+## What URL is active when viewing the third job?
+
+If the user selects the third job, the URL becomes /jobs/3
+
+## What does the system Back button do?
+
+If the user navigates from the jobs list to a job's detail page, pressing the back button should return them to the /jobs route.
+If the user opens the application directly to /jobs/3 from a notification perhaps, pressing the back button should take them to the jobs list (/jobs) rather than immediately exiting the application. This provides users with useful context after viewing the notification and allows them to continue exploring other available jobs
+
+## Question 2
+### a) The user taps a job card and a detail screen slides in.
+The navigation method I'd use is context.push() because the detail screen is a new page on top of the jobs list, so pressing the back button should return the user to the same position in the list they were previously viewing.
+
+### b) The user taps the Saved tab in the NavigationBar.
+The navigation method I'd use is context.go() because switching tabs is changing the app's primary destination, not opening a new page. Pressing the back button should not cycle through previously selected tabs but should behave as users expect for top-level navigation.
+
+### c) A hypothetical Log Out button that clears the session and should leave the user with no path back to the authenticated screens.
+The navigation method I'd use is context.go() because logging out should replace the current navigation state with the login screen so that pressing the back button cannot return the user to authenticated pages.
+
+### d) A "Browse Similar Roles" button on the detail screen that navigates to the jobs list with a specific filter applied.
+ I'd use context.go() because the user is changing what is displayed on the jobs list rather than opening another page. Replacing the current route with the filtered jobs list avoids building up unnecessary pages in the navigation stack.
+
+### Wrong choice for (d)
+The wrong choice is context.push().
+If it's used, the filtered jobs list is pushed on top of the job detail screen. When the user presses the Back button, they unexpectedly return to the previous job detail screen instead of leaving the jobs list or returning to the previous top-level destination. This creates a confusing navigation history because the jobs list is not intended to be a temporary page stacked on top of the detail screen.
+
+## Question 3
+### What goes wrong if I use the job's position in the filtered list as the URL parameter
+
+Using the job's position in the list (for example, /jobs/3 meaning "the third item currently displayed") is unreliable because the order and contents of the list can change. A unique job ID always refers to the same job, regardless of how the list is sorted or filtered, ensuring that every URL consistently opens the correct job.
+
+### Scenario 1 – Filter chips change the list
+
+Example list:
+
+Senior Flutter Developer
+UI Designer
+Backend Developer
+Data Analyst
+
+If the complete jobs list is similar to the one above, without any filters, /jobs/3 would refer to backend developer.
+
+If the user taps the Full-Time filter chip and only Senior Flutter Developer and Data Analyst remain, there is no third job anymore. Alternatively, if a different filter is applied, the third position could refer to an entirely different job. The same URL therefore no longer identifies the same listing.
+
+### Scenario 2 – New jobs are added or the list is sorted differently
+
+Example list:
+
+Senior Flutter Developer
+UI Designer
+Backend Developer
+
+If today's list is like the one above, a new featured job might get added to the top, and the list would say:
+
+Mobile Team Lead
+Senior Flutter Developer
+UI Designer
+Backend Developer
+
+Yesterday, /jobs/3 referred to Backend Developer. Today, the same URL refers to UI Designer. A bookmarked or shared link would therefore open the wrong job.
+
+### Push notification scenario
+
+When a user taps a notification such as "Your application to Senior Flutter Developer was reviewed. Tap to view.", the app should open directly to that specific job regardless of its current state. A list-position-based URL would only work if, at that exact moment, the app had already loaded the same job list, in the same order, with the same sorting, the same active filter chips, and no new or removed jobs. These conditions cannot be guaranteed because users may have changed filters, the job list may have been updated from the server, or the app may be opening from a completely closed state with no list loaded yet. A unique job ID avoids these problems because it always identifies the same job independently of the current list or application state.
+
+### Question 4
+
+When the app changes from MaterialApp to MaterialApp.router, navigation is no longer managed by the home property or by manually pushing routes. Instead, the widget tree is built from the route configuration provided by GoRouter, which determines the initial screen and handles all navigation. As a result, the test framework now builds the application through the router, so the widget tree depends on the configured routes rather than a fixed home widget.
+
+GoRouter uses the initialLocation property to decide which route is displayed when the application starts. If the router's initialLocation is set to /jobs, then pumping the app in a widget test will open the JobsScreen first.
+
+Since the existing widget test checks that the jobs list and its job cards are displayed, and the app now starts on /jobs, the test should still land on the correct screen. Therefore, no changes are required to the test assertions simply to see the jobs list, provided that /jobs remains the router's initial location. The only change is that the app is now initialized through the router instead of directly through a home widget.
