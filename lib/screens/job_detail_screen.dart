@@ -1,6 +1,7 @@
-import 'package:careerhub/providers/job_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../providers/job_providers.dart';
 
 class JobDetailScreen extends ConsumerWidget {
   final int jobId;
@@ -9,64 +10,53 @@ class JobDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Use the raw jobs provider so the selected job can still be found
-    // even if the active filter would normally hide it.
+    // Use the raw jobs provider so the selected job can always be found,
+    // even if the current filter would hide it.
     final jobsAsync = ref.watch(jobsProvider);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text("Job Details")),
-      body: jobsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+    return jobsAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
 
-        error: (error, stack) =>
-            const Center(child: Text("Failed to load job.")),
+      error: (error, stack) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            "Failed to load job.\n$error",
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ),
 
-        data: (jobs) {
-          final job = jobs.where((j) => j.id == jobId).firstOrNull;
+      data: (jobs) {
+        final job = jobs.where((job) => job.id == jobId).firstOrNull;
 
-          if (job == null) {
-            return const Center(child: Text("Job not found."));
-          }
+        if (job == null) {
+          return const Center(
+            child: Text("Job not found.", style: TextStyle(fontSize: 20)),
+          );
+        }
 
-          return ListView(
+        return SafeArea(
+          child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              Text(job.title, style: Theme.of(context).textTheme.headlineSmall),
-
-              const SizedBox(height: 16),
-
-              ListTile(
-                title: const Text("Company"),
-                subtitle: Text(job.company),
+              Text(
+                job.title,
+                style: Theme.of(context).textTheme.headlineMedium,
               ),
-
-              ListTile(
-                title: const Text("Location"),
-                subtitle: Text(job.location),
-              ),
-
-              ListTile(
-                title: const Text("Employment Type"),
-                subtitle: Text(job.employmentType),
-              ),
-
-              ListTile(
-                title: const Text("Salary"),
-                subtitle: Text(job.displaySalary),
-              ),
-
-              ListTile(
-                title: const Text("Status"),
-                subtitle: Text(job.canApply ? "Open" : "Closed"),
-              ),
-
-              if (job.closingDate != null)
-                ListTile(
-                  title: const Text("Closing Date"),
-                  subtitle: Text(job.closingDate.toString()),
-                ),
 
               const SizedBox(height: 20),
+
+              _detailTile("Company", job.company),
+              _detailTile("Location", job.location),
+              _detailTile("Employment Type", job.employmentType),
+              _detailTile("Salary", job.displaySalary),
+              _detailTile("Status", job.canApply ? "Open" : "Closed"),
+
+              if (job.closingDate != null)
+                _detailTile("Closing Date", job.closingDate.toString()),
+
+              const SizedBox(height: 24),
 
               Text(
                 "Description",
@@ -77,9 +67,13 @@ class JobDetailScreen extends ConsumerWidget {
 
               Text(job.description),
             ],
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
+  }
+
+  Widget _detailTile(String title, String value) {
+    return ListTile(title: Text(title), subtitle: Text(value));
   }
 }
