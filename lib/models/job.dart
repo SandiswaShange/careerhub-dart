@@ -1,4 +1,5 @@
 class Job {
+  final int id;
   final String title;
   final String company;
   final String location;
@@ -9,6 +10,7 @@ class Job {
   final DateTime? closingDate;
 
   const Job({
+    required this.id,
     required this.title,
     required this.company,
     required this.location,
@@ -21,6 +23,7 @@ class Job {
 
   /// Creates a remote job listing.
   Job.remote({
+    required int id,
     required String title,
     required String company,
     String? salary,
@@ -28,6 +31,7 @@ class Job {
     DateTime? closingDate,
     bool isOpen = true,
   }) : this(
+         id: id,
          title: title,
          company: company,
          location: "Remote",
@@ -48,6 +52,7 @@ class Job {
     required String employmentType,
     DateTime? closingDate,
   }) : this(
+         id: 0,
          title: title,
          company: company,
          location: location,

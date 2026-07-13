@@ -2,6 +2,7 @@ import 'package:careerhub/models/job.dart';
 
 void main() {
   final job1 = Job(
+    id: 1,
     title: "Flutter Developer",
     company: "Tech Solutions",
     location: "Cape Town",
@@ -13,6 +14,7 @@ void main() {
   );
 
   final job2 = Job(
+    id: 2,
     title: "Junior Developer",
     company: "Creative Apps",
     location: "Durban",
@@ -32,6 +34,7 @@ void main() {
   );
 
   final job4 = Job.remote(
+    id: 4,
     title: "UI Designer",
     company: "Remote Tech",
     salary: "R40 000 per month",
@@ -47,4 +50,4 @@ void main() {
     print("displaySalary: ${job.displaySalary}");
     print("----------------------");
   }
-} 
+}

@@ -7,6 +7,7 @@ final jobsProvider = FutureProvider<List<Job>>((ref) async {
 
   return [
     Job(
+      id: 1,
       title: "Flutter Developer",
       company: "Tech Solutions",
       location: "Cape Town",
@@ -17,6 +18,7 @@ final jobsProvider = FutureProvider<List<Job>>((ref) async {
     ),
 
     Job(
+      id: 2,
       title: "Junior Developer",
       company: "Creative Apps",
       location: "Durban",
@@ -35,6 +37,7 @@ final jobsProvider = FutureProvider<List<Job>>((ref) async {
     ),
 
     Job.remote(
+      id: 3,
       title: "UI Designer",
       company: "Remote Tech",
       salary: "R40 000 per month",
