@@ -57,7 +57,7 @@ class HomeScreen extends ConsumerWidget {
                   label: const Text("All"),
                   selected: selectedFilter == "All",
                   onSelected: (_) {
-                    ref.read(selectedFilterProvider.notifier).state = "All";
+                    ref.read(selectedFilterProvider.notifier).state = "All";  
                   },
                 ),
                 const SizedBox(width: 8),
