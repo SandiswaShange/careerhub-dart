@@ -244,3 +244,66 @@ Since the existing widget test checks that the jobs list and its job cards are d
 ![Detail Screen Screnshot](image-5.png)
 ![saved jobs](image-6.png)
 ![back to job detail](image-7.png)
+
+## Question 1 — Why a DTO, not a fromJson() on the Job model
+
+When comparing my API response with my Flutter Job model, the following field names differ:
+
+| API Field | Flutter Job Field |
+|-----------|-------------------|
+| id | jobId |
+| type | employmentType |
+| applicationCount | applicantCount |
+| minSalary & maxSalary | salary |
+
+If the API team renamed one of these fields tomorrow, the JSON mapping would no longer match the API response. The code responsible for decoding the response would fail until it was updated.
+
+Using a separate JobDTO isolates the API contract from the rest of the application. The DTO is responsible for understanding the API's JSON format and converting it into the application's Job model. If the API changes a field name, only the DTO needs to be updated because every other part of the application continues working with the same Job object.
+
+If fromJson() were implemented directly on the Job model, the Job class would become tightly coupled to the API contract. Any future changes to the API would require modifications to the application's core model, increasing the impact of backend changes and making the model responsible for both business logic and network serialization.
+
+With a JobDto, only the DTO (and possibly the repository if the endpoint itself changes) needs to be modified. The UI, providers, widgets, and business logic continue using the same Job model without knowing that the API changed.
+
+The DTO should also capture API fields that are not currently displayed in the Flutter UI, provided they represent useful business data. Even if those fields are unused today, they may become necessary as CareerHub evolves. Six months from now, a new screen or feature may require them, and having them already represented in the DTO allows the existing API response to be reused without changing the networking layer. The domain Job model should only contain the data the application currently needs, while the DTO represents the complete contract between the Flutter application and the API.
+
+## Question 2 — Why the repository owns Dio, not the provider
+
+JobDetailScreen is currently the only class in this project that calls ref.watch(jobsProvider) and ref.watch(filteredJobsProvider).
+
+JobDetailsScreen does not need to know whether the job data comes from an HTTP request, a local database, or a hardcoded list. Its responsibility is simply to obtain job data through the provider and display it. The source of that data is an implementation detail that should be hidden from the UI.
+
+The repository owns the networking code because it is responsible for communicating with external data sources. It creates and configures the Dio client, sends HTTP requests, handles errors and timeouts, converts JSON into DTOs, and maps DTOs into the application's Job model. This allows the provider to focus on state management rather than networking.
+
+If CareerHub switched from Dio to a different HTTP client, only the networking layer would need to change. This would typically include the Dio client configuration and the jobs repository implementation. The provider, UI, and JobDetailsScreen would not need to change because they interact only with the repository rather than the HTTP client directly.
+
+Without the repository pattern, JobsNotifier would need to contain the HTTP logic. Changing HTTP clients would then require modifying both the notifier and the networking code. As the application grows, this would increase the number of files affected by infrastructure changes.
+
+Using a repository keeps networking concerns isolated, reduces the number of files that must change when the implementation changes, and allows multiple developers to work on different parts of the application without unnecessary coupling.
+
+## Question 3 — What @riverpod generates and why the red underline is expected
+
+When I write class JobsNotifier extends _$JobsNotifier with the @riverpod annotation, the red underline appears because the _$JobsNotifier class has not been generated yet. It is not written by the developer; it is generated automatically by Riverpod's code generator.
+
+The generated class is created inside the jobs_notifier.g.dart file. Before that file exists, the IDE cannot find _$JobsNotifier, so it reports an error. This is expected and does not mean the code is incorrect.
+
+The red underline disappears after running the code generator which uses the `dart run build_runner build` command or `dart run build_runner watch` during development.
+
+After running one of these commands, the .g.dart file is generated and the IDE can resolve _$JobsNotifier.
+
+Inside the generated .g.dart file is a provider declaration created from my JobsNotifier class. The generator determines the provider's type parameters by reading the return type of the build() method. The build() method defines the type of state that the provider exposes, so Riverpod uses that method to generate the correct provider declaration automatically.
+
+Before code generation, developers had to write provider declarations manually. One mistake would be declaring a provider with the wrong type parameter, such as creating a NotifierProvider<JobsNotifier, List<Job>> when the notifier's build() method actually returned AsyncValue<List<Job>>. Although the code could compile in some situations, it would eventually lead to runtime type errors because the provider's declared state did not match the notifier's actual state.
+
+Code generation makes this mistake impossible because the provider declaration is generated directly from the build() method. Since the generator reads the notifier's actual return type, the generated provider always stays consistent with the implementation, eliminating mismatched type parameters caused by manual coding.
+
+## Question 4 — Why the test overrides the provider instead of mocking the network
+
+When flutter test runs, there is no CareerHub API server running on the test machine. When JobsNotifier.build() tries to fetch jobs, Dio attempts to send an HTTP request to the configured API endpoint. Because the server is unavailable, Dio throws a network exception. AsyncNotifier captures this exception and places the provider into an error state. As a result, the widget tree renders the error state instead of the expected list of jobs. The test therefore fails because of the unhandled network error rather than because one of the test assertions is incorrect.
+
+Using overrideWith in the test's ProviderScope replaces the real implementation of jobsNotifierProvider with a test implementation while leaving the rest of the widget tree unchanged.
+
+The single responsibility of the widget test is to verify that the user interface behaves correctly when it receives a known set of job data.
+
+The widget test is not responsible for testing that Dio correctly communicates with the CareerHub API. That responsibility belongs to integration tests or repository tests that exercise the networking layer.
+
+The widget test is also not responsible for testing that the API returns the correct JSON or that JSON is correctly converted into application models. That responsibility belongs to repository or DTO unit tests, which verify the networking and data-mapping logic independently of the UI.
