@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/job.dart';
 import '../providers/job_providers.dart';
+import '../providers/jobs_notifier.dart';
 import '../widgets/job_card.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -70,7 +71,7 @@ class HomeScreen extends ConsumerWidget {
                     const Text("Failed to load jobs"),
                     const SizedBox(height: 8),
                     ElevatedButton(
-                      onPressed: () => ref.refresh(jobsProvider),
+                      onPressed: () => ref.read(jobsNotifierProvider.notifier).refresh(),
                       child: const Text("Retry"),
                     ),
                   ],

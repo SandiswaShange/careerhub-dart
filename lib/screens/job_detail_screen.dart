@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/job_providers.dart';
+import '../providers/jobs_notifier.dart';
 
 class JobDetailScreen extends ConsumerWidget {
   final int jobId;
@@ -12,7 +13,7 @@ class JobDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // Use the raw jobs provider so the selected job can always be found,
     // even if the current filter would hide it.
-    final jobsAsync = ref.watch(jobsProvider);
+    final jobsAsync = ref.watch(jobsNotifierProvider);
 
     return jobsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
