@@ -38,20 +38,40 @@ class HomeScreen extends ConsumerWidget {
                 const SizedBox(width: 8),
 
                 FilterChip(
-                  label: const Text("Remote"),
-                  selected: selectedFilter == "Remote",
-                  onSelected: (_) {
-                    ref.read(selectedFilterProvider.notifier).state = "Remote";
-                  },
-                ),
-                const SizedBox(width: 8),
-
-                FilterChip(
                   label: const Text("Full-time"),
                   selected: selectedFilter == "Full-time",
                   onSelected: (_) {
                     ref.read(selectedFilterProvider.notifier).state =
                         "Full-time";
+                  },
+                ),
+                const SizedBox(width: 8),
+
+                FilterChip(
+                  label: const Text("Part-time"),
+                  selected: selectedFilter == "Part-time",
+                  onSelected: (_) {
+                    ref.read(selectedFilterProvider.notifier).state =
+                        "Part-time";
+                  },
+                ),
+                const SizedBox(width: 8),
+
+                FilterChip(
+                  label: const Text("Contract"),
+                  selected: selectedFilter == "Contract",
+                  onSelected: (_) {
+                    ref.read(selectedFilterProvider.notifier).state =
+                        "Contract";
+                  },
+                ),
+                const SizedBox(width: 8),
+                FilterChip(
+                  label: const Text("Internship"),
+                  selected: selectedFilter == "Internship",
+                  onSelected: (_) {
+                    ref.read(selectedFilterProvider.notifier).state =
+                        "Internship";
                   },
                 ),
               ],

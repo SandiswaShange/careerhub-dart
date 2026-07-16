@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/jobs_notifier.dart';
 
 class JobDetailScreen extends ConsumerWidget {
-  final int jobId;
+  final String jobId;
 
   const JobDetailScreen({super.key, required this.jobId});
 

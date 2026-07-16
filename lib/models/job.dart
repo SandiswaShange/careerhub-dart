@@ -24,15 +24,16 @@ class Job {
   });
 
 Job.fromDto(JobDto dto)
-    : id = dto.id ,
+    : id = dto.id,
       title = dto.title,
       company = dto.company,
       location = dto.location,
       salary = _formatSalary(dto.minSalary, dto.maxSalary),
-      description = dto.description,
+      description = '',
       employmentType = _employmentType(dto.type),
       isOpen = dto.isActive,
-      closingDate = dto.closingDate;
+      closingDate = null;
+      
       static String? _formatSalary(double? min, double? max) {
         if (min == null && max == null) return null;
 

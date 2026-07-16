@@ -10,14 +10,14 @@ part 'jobs_repository.g.dart';
 Dio dio(Ref ref) {
   const baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://10.0.2.2:5000',
+    defaultValue: 'http://localhost:5043',
   );
 
   final dio = Dio(
     BaseOptions(
       baseUrl: baseUrl,
-      connectTimeout: const Duration(seconds: 5),
-      receiveTimeout: const Duration(seconds: 5),
+      connectTimeout: const Duration(seconds: 15),
+      receiveTimeout: const Duration(seconds: 15),
     ),
   );
 
@@ -46,19 +46,13 @@ class JobsRepository {
   final Dio _dio;
 
   Future<List<Job>> getJobs() async {
-    final response = await _dio.get('/api/jobs');
-    final data = response.data;
+    final response = await _dio.get('/api/v1/jobs');
 
-    if (data is! List) {
-      throw Exception('Unexpected jobs response format');
-    }
+    final body = Map<String, dynamic>.from(response.data);
+    final jobs = List<Map<String, dynamic>>.from(body['data']);
 
-    return data
-        .map(
-          (item) => Job.fromDto(
-            JobDto.fromJson(Map<String, dynamic>.from(item as Map)),
-          ),
-        )
+    return jobs
+        .map((json) => Job.fromDto(JobDto.fromJson(json)))
         .toList();
   }
 }

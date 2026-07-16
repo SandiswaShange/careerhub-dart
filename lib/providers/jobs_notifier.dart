@@ -11,7 +11,7 @@ part 'jobs_notifier.g.dart';
 class JobsNotifier extends _$JobsNotifier {
   @override
   FutureOr<List<Job>> build() async {
-    return ref.read(jobsRepositoryProvider).getJobs();
+    return ref.watch(jobsRepositoryProvider).getJobs();
   }
 
   Future<void> refresh() async {

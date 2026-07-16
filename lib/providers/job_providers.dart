@@ -12,11 +12,14 @@ final filteredJobsProvider = Provider<AsyncValue<List<Job>>>((ref) {
 
   return jobsAsync.whenData((jobs) {
     switch (filter) {
-      case "Remote":
-        return jobs.where((job) => job.employmentType == "Remote").toList();
-
       case "Full-time":
         return jobs.where((job) => job.employmentType == "Full-time").toList();
+      case "Part-time":
+        return jobs.where((job) => job.employmentType == "Part-time").toList();
+      case "Contract":
+        return jobs.where((job) => job.employmentType == "Contract").toList();
+      case "Internship":
+        return jobs.where((job) => job.employmentType == "Internship").toList();
 
       default:
         return jobs;
