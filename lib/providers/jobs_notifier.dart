@@ -19,5 +19,4 @@ class JobsNotifier extends _$JobsNotifier {
     await future;
   }
 }
-
-const jobsNotifierProvider = jobsProvider;
+//const jobsNotifierProvider = jobsProvider;

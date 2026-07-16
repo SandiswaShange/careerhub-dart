@@ -307,3 +307,8 @@ The single responsibility of the widget test is to verify that the user interfac
 The widget test is not responsible for testing that Dio correctly communicates with the CareerHub API. That responsibility belongs to integration tests or repository tests that exercise the networking layer.
 
 The widget test is also not responsible for testing that the API returns the correct JSON or that JSON is correctly converted into application models. That responsibility belongs to repository or DTO unit tests, which verify the networking and data-mapping logic independently of the UI.
+
+## Job list from backend
+![job list](image-8.png)
+## Job details from backend
+![job details](image-9.png)

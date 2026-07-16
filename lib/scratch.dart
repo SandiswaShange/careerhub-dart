@@ -1,4 +1,4 @@
-import 'package:careerhub/models/job.dart';
+/*import 'package:careerhub/models/job.dart';
 
 void main() {
   final job1 = Job(
@@ -51,4 +51,4 @@ void main() {
     print("displaySalary: ${job.displaySalary}");
     print("----------------------");
   }
-}
+}*/
