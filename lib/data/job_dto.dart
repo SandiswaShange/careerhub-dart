@@ -1,4 +1,27 @@
-class JobDto {
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+part 'job_dto.freezed.dart';
+part 'job_dto.g.dart';
+
+@freezed
+class JobDto with _$JobDto {
+  const factory JobDto({
+    required String id,
+    required String title,
+    required String company,
+    required String location,
+    double? minSalary,
+    double? maxSalary,
+    required DateTime postedAt,
+    required bool isActive,
+    required int type,
+    required int applicationCount,
+  }) = _JobDto;
+
+  factory JobDto.fromJson(Map<String, dynamic> json) =>
+      _$JobDtoFromJson(json);
+}
+/*class JobDto {
   final String id;
   final String title;
   final String company;
@@ -37,4 +60,4 @@ class JobDto {
       applicationCount: json['applicationCount'] as int,
     );
   }
-}
+}*/

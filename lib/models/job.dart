@@ -1,80 +1,14 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
+
 import 'package:careerhub/data/job_dto.dart';
 
-class Job {
-  final String id;
-  final String title;
-  final String company;
-  final String location;
-  final String? salary;
-  final String description;
-  final String employmentType;
-  final bool isOpen;
-  final DateTime? closingDate;
+part 'job.freezed.dart';
 
-  const Job({
-    required this.id,
-    required this.title,
-    required this.company,
-    required this.location,
-    this.salary,
-    required this.description,
-    required this.employmentType,
-    required this.isOpen,
-    this.closingDate,
-  });
+@freezed
+class Job with _$Job {
+  const Job._();
 
-Job.fromDto(JobDto dto)
-    : id = dto.id,
-      title = dto.title,
-      company = dto.company,
-      location = dto.location,
-      salary = _formatSalary(dto.minSalary, dto.maxSalary),
-      description = '',
-      employmentType = _employmentType(dto.type),
-      isOpen = dto.isActive,
-      closingDate = null;
-      
-      static String? _formatSalary(double? min, double? max) {
-        if (min == null && max == null) return null;
-
-        if (min != null && max != null) {
-          return 'R${min.toInt()} - R${max.toInt()}';
-        }
-
-        return 'R${(min ?? max)!.toInt()}';
-      }
-
-  static String _employmentType(int type) => switch (type) {
-    0 => 'Full-time',
-    1 => 'Part-time',
-    2 => 'Contract',
-    3 => 'Internship',
-    _ => 'Unknown',
-  };
-
-  /// Creates a remote job listing.
-  Job.remote({
-    required String id,
-    required String title,
-    required String company,
-    String? salary,
-    required String description,
-    DateTime? closingDate,
-    bool isOpen = true,
-  }) : this(
-         id: id,
-         title: title,
-         company: company,
-         location: "Remote",
-         salary: salary,
-         description: description,
-         employmentType: "Remote",
-         isOpen: isOpen,
-         closingDate: closingDate,
-       );
-
-  /// Creates a job that is already closed.
-  Job.closed({
+  const factory Job({
     required String id,
     required String title,
     required String company,
@@ -82,33 +16,43 @@ Job.fromDto(JobDto dto)
     String? salary,
     required String description,
     required String employmentType,
+    required bool isOpen,
     DateTime? closingDate,
-  }) : this(
-         id: id,
-         title: title,
-         company: company,
-         location: location,
-         salary: salary,
-         description: description,
-         employmentType: employmentType,
-         isOpen: false,
-         closingDate: closingDate,
-       );
+  }) = _Job;
+
+  static Job fromDto(JobDto dto) {
+    return Job(
+      id: dto.id,
+      title: dto.title,
+      company: dto.company,
+      location: dto.location,
+      salary: _formatSalary(dto.minSalary, dto.maxSalary),
+      description: '',
+      employmentType: _employmentType(dto.type),
+      isOpen: dto.isActive,
+      closingDate: null,
+    );
+  }
+
+  static String? _formatSalary(double? min, double? max) {
+    if (min == null && max == null) return null;
+
+    if (min != null && max != null) {
+      return 'R${min.toInt()} - R${max.toInt()}';
+    }
+
+    return 'R${(min ?? max)!.toInt()}';
+  }
+
+  static String _employmentType(int type) => switch (type) {
+        0 => 'Full-time',
+        1 => 'Part-time',
+        2 => 'Contract',
+        3 => 'Internship',
+        _ => 'Unknown',
+      };
 
   bool get canApply => isOpen;
 
-  String get displaySalary {
-    return salary ?? 'Market-related';
-  }
-
-  @override
-  String toString() {
-    return 'Job(title: $title, '
-        'company: $company, '
-        'location: $location, '
-        'employmentType: $employmentType, '
-        'salary: $displaySalary, '
-        'isOpen: $isOpen, '
-        'closingDate: ${closingDate ?? "None"})';
-  }
+  String get displaySalary => salary ?? 'Market-related';
 }
