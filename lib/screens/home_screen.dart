@@ -91,7 +91,7 @@ class HomeScreen extends ConsumerWidget {
                     const Text("Failed to load jobs"),
                     const SizedBox(height: 8),
                     ElevatedButton(
-                      onPressed: () => ref.read(jobsNotifierProvider.notifier).refresh(),
+                      onPressed: () => ref.invalidate(jobsNotifierProvider),
                       child: const Text("Retry"),
                     ),
                   ],
