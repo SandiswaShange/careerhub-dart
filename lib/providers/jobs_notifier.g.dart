@@ -6,7 +6,7 @@ part of 'jobs_notifier.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$jobsNotifierHash() => r'35c91c1b49389b12caf4fa35c05450d7a7fe5a3e';
+String _$jobsNotifierHash() => r'639ce956e6c08196ed9d578dfcced9ee3c2b0cda';
 
 /// See also [JobsNotifier].
 @ProviderFor(JobsNotifier)
