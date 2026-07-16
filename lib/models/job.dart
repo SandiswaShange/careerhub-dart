@@ -44,20 +44,13 @@ Job.fromDto(JobDto dto)
         return 'R${(min ?? max)!.toInt()}';
       }
 
-      static String _employmentType(int type) {
-        switch (type) {
-          case 0:
-            return 'Full-time';
-          case 1:
-            return 'Part-time';
-          case 2:
-            return 'Contract';
-          case 3:
-            return 'Internship';
-          default:
-            return 'Unknown';
-        }
-      }
+  static String _employmentType(int type) => switch (type) {
+    0 => 'Full-time',
+    1 => 'Part-time',
+    2 => 'Contract',
+    3 => 'Internship',
+    _ => 'Unknown',
+  };
 
   /// Creates a remote job listing.
   Job.remote({
