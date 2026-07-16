@@ -1,17 +1,22 @@
 import 'package:flutter/material.dart';
-import '../models/job.dart';
-import 'job_status_badge.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class JobCard extends StatelessWidget {
+import '../models/job.dart';
+import '../providers/saved_jobs_provider.dart';
+import 'job_status_badge.dart';
+
+class JobCard extends ConsumerWidget {
   final Job job;
 
   const JobCard({super.key, required this.job});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final savedJobs = ref.watch(savedJobsProvider);
+    final isSaved = savedJobs.any((savedJob) => savedJob.id == job.id);
 
     return Card(
       color: colorScheme.surface,
@@ -24,11 +29,26 @@ class JobCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                job.title,
-                style: textTheme.titleMedium?.copyWith(
-                  color: colorScheme.onSurface,
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      job.title,
+                      style: textTheme.titleMedium?.copyWith(
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      isSaved ? Icons.bookmark : Icons.bookmark_border,
+                      color: isSaved ? colorScheme.primary : null,
+                    ),
+                    onPressed: () {
+                      ref.read(savedJobsProvider.notifier).toggle(job);
+                    },
+                  ),
+                ],
               ),
 
               const SizedBox(height: 4),
