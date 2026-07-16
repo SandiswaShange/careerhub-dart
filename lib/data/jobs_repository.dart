@@ -2,6 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import 'api_result.dart';
+
 import '../models/job.dart';
 import 'job_dto.dart';
 
@@ -46,14 +48,60 @@ class JobsRepository {
 
   final Dio _dio;
 
-  Future<List<Job>> getJobs() async {
-    final response = await _dio.get('/api/v1/jobs');
+  Future<ApiResult<List<Job>>> getJobs() async {
+    try {
+      final responses = await Future.wait([
+        _dio.get('/api/v1/jobs'),
+      ]);
 
-    final body = Map<String, dynamic>.from(response.data);
-    final jobs = List<Map<String, dynamic>>.from(body['data']);
+      final parsed = _parseResponses(responses);
+      final jobs = parsed.jobDtos.map(Job.fromDto).toList();
 
-    return jobs
-        .map((json) => Job.fromDto(JobDto.fromJson(json)))
-        .toList();
+      return Success(jobs);
+    } on DioException catch (e) {
+      return Failure(
+        _dioMessage(e),
+        statusCode: e.response?.statusCode,
+      );
+    } catch (_) {
+      return const Failure('Something went wrong while loading jobs.');
+    }
   }
+
+  ({List<JobDto> jobDtos}) _parseResponses(List<Response<dynamic>> responses) {
+    final jobDtos = (responses[0].data as List<dynamic>)
+        .cast<Map<String, dynamic>>()
+        .map(JobDto.fromJson)
+        .toList();
+
+    return (jobDtos: jobDtos);
+  }
+
+  String _dioMessage(DioException e) => switch (e.type) {
+        DioExceptionType.connectionTimeout =>
+          'The request timed out while connecting to the server.',
+        DioExceptionType.sendTimeout =>
+          'The request timed out while sending data.',
+        DioExceptionType.receiveTimeout =>
+          'The server took too long to respond.',
+        DioExceptionType.badCertificate =>
+          'A secure connection could not be established.',
+        DioExceptionType.cancel =>
+          'The request was cancelled.',
+        DioExceptionType.connectionError =>
+          'Could not connect to the server.',
+        DioExceptionType.transformTimeout =>
+          'The server took too long to process the response.',
+        DioExceptionType.badResponse => switch (e.response?.statusCode) {
+            400 => 'The server rejected the request.',
+            401 => 'You are not authorized to view these jobs.',
+            403 => 'Access to these jobs is forbidden.',
+            404 => 'Jobs could not be found.',
+            500 || 502 || 503 || 504 =>
+              'The server is unavailable right now.',
+            _ => 'The server returned an error.',
+          },
+        DioExceptionType.unknown =>
+          'An unexpected network error occurred.',
+      };
 }
