@@ -312,3 +312,60 @@ The widget test is also not responsible for testing that the API returns the cor
 ![job list](image-8.png)
 ## Job details from backend
 ![job details](image-9.png)
+
+## The two persistence mechanisms and why they are not interchangeable
+
+### SharedPreferences
+SharedPreferences stores only simple key-value data types (String, bool, int, double, and List<String>), so a List<Job> cannot be stored directly. To save the jobs list, each Job would first have to be converted into a JSON map, the entire list encoded into a JSON string with jsonEncode(), and that string written to SharedPreferences. When reading the cache, the process would be reversed by retrieving the string, decoding it with jsonDecode(), and converting each JSON object back into a Job instance. Because this encoding and decoding happen synchronously in Dart, decoding a large jobs list can block the main isolate. If the user opens the jobs screen while the main isolate is busy decoding the JSON, the UI cannot process frames until decoding finishes, leading to dropped frames, stuttering, or a temporarily unresponsive interface.
+
+### Isar
+Isar is a schema-first object database and cannot persist an arbitrary List<Job> because it needs a storage schema describing exactly how each object should be stored and indexed. The @collection annotation marks a class as a database collection, and the code generator produces the schema metadata, serialization logic, query extensions, and native storage bindings that Isar uses to read and write objects efficiently. A plain Dart class provides none of this information, so Isar has no way to map its fields to the underlying database or generate the type-safe query API required for persistence.
+
+### Why a third class is required
+JobDto and Job already serve different architectural responsibilities: JobDto models the API contract, while Job represents the application's domain model. A third class is required because @freezed generates immutable classes with generated constructors and behavior that are incompatible with Isar's @collection requirements, which expect a mutable schema class with generated database metadata (including features such as an Id field and generated storage bindings). Keeping a separate Isar entity also preserves the separation between the network, domain, and persistence layers, allowing each representation to evolve independently without introducing framework-specific concerns into the others.
+
+## Isar's type limitations and my conversion strategy
+
+### Storing enums in Isar
+Isar 3.x does not natively support Dart enums, so the enum value will be stored as a String in the Isar schema by writing the enum's name (for example, employmentType.name). When reading from the cache, the stored string will be converted back into the enum using a lookup such as EmploymentType.values.firstWhere((e) => e.name == storedValue, orElse: () => EmploymentType.fullTime). If the stored string does not match any known enum value, the fallback (EmploymentType.fullTime in this example) will be returned. A fallback is necessary because the stored data may have been written by an older version of the application or may be corrupted, and allowing the lookup to throw an exception at runtime could cause the entire cache read to fail instead of allowing the application to continue with a safe default.
+
+### Storing DateTime values
+Isar supports DateTime fields natively, so the schema can declare them as DateTime and Isar handles the binary serialization and deserialization automatically. This is safer than storing timestamps as int epoch milliseconds because the application continues working with DateTime objects instead of manually converting integers back into dates throughout the codebase, reducing the risk of conversion mistakes. A common time zone issue occurs when an epoch timestamp is reconstructed without preserving whether it represents UTC or local time. For example, a deadline stored as midnight UTC could be interpreted as midnight local time, causing users in another time zone to see the previous or next calendar date. By storing and retrieving the value as a DateTime, Isar preserves the date and time information correctly, avoiding these silent time zone conversion errors.
+
+## Initialization order and the provider override pattern
+
+### WidgetsFlutterBinding.ensureInitialized()
+WidgetsFlutterBinding.ensureInitialized() creates the WidgetsFlutterBinding instance if one does not already exist. The binding connects the Flutter framework running in Dart to the underlying platform by managing the platform channels used for services such as file system access, plugins, input events, scheduling frames, and rendering. It must be the first statement in an asynchronous main() because plugins such as path_provider communicate with the native platform through these platform channels. If getApplicationDocumentsDirectory() is called before the binding is initialized, Flutter throws a BindingError with the message: "Binding has not yet been initialized." This indicates that no binding exists to handle communication between Dart and the platform.
+
+### Why placeholder providers throw UnimplementedError
+Having the placeholder providers throw UnimplementedError is safer than returning null or a default value because it fails immediately if the application is incorrectly configured. Returning null or a fake object could allow the app to continue running until a much later point, making the real cause of the problem difficult to identify. In Riverpod, overrideWithValue takes effect when the ProviderScope is created, before any providers are evaluated. Therefore, when another provider's build() method executes and calls ref.watch() synchronously, it immediately sees the overridden value rather than the placeholder implementation.
+
+### Why not use a lazy FutureProvider<Isar>
+Although a FutureProvider<Isar> that opens the database on first use is technically possible, it has two disadvantages.
+
+Slower startup experience. The first screen that requires the database must wait for Isar.open() to complete, meaning cached data cannot be displayed immediately and the user sees an unnecessary loading state.
+Runtime initialization failures. If multiple providers or widgets attempt to access the database before it has finished opening, the application may encounter runtime errors or race conditions that are not detectable at compile time. By opening Isar before calling runApp(), the app guarantees that every provider receives a fully initialized database instance from the start.
+
+## Question 4 — The cache-then-network contract with Riverpod's state machine
+
+### Cache-then-network state transitions
+
+During a cache-then-network build, the provider moves through three observable states.
+
+Initial loading state. Before build() returns anything, the provider is in AsyncLoading. This happens when Riverpod first starts executing the build() method. The jobs screen rebuilds and the .when() callback displays the CircularProgressIndicator.
+Cached data loaded. When build() completes the call that reads the cached jobs from Isar and returns the cached list, the provider changes from AsyncLoading to AsyncData<List<Job>>. This transition is caused by the line that returns the cached jobs from build(). The jobs screen rebuilds again, replacing the loading spinner with the ListView showing the cached jobs.
+Background refresh completed. While the ListView is already visible, the background network request finishes successfully and updates the provider's state with the latest data by assigning state = AsyncData(updatedJobs). The provider remains in AsyncData, but with newer data. Riverpod notifies listeners, the jobs screen rebuilds once more, and the ListView updates with the refreshed jobs without ever showing the loading spinner again.
+
+### Why the notifier returns the cached list after a failed network request
+If the network request fails and the notifier returns the cached list instead of throwing, filteredJobsProvider continues to receive a valid AsyncData<List<Job>> because it is watching a successful jobs provider. The jobs screen's .when() method therefore continues to render the ListView using the cached data, allowing the application to function while offline.
+
+If the notifier threw an exception instead, the raw jobs provider would become AsyncError, and filteredJobsProvider, which depends on it, would also expose AsyncError. As a result, the jobs screen's .when() call would rebuild into its error branch and display the error UI instead of the cached jobs, even though valid cached data was available.
+
+Throwing would be the more appropriate choice only when no usable cached data exists—for example, on the application's very first launch before any successful API response has ever been stored. In that situation, the application has no data to display, so showing an error accurately reflects the state of the application.
+
+### Initial state of the connectivity provider
+connectivity_plus does not emit an event immediately when a listener subscribes; it only emits when the device's connectivity changes. Therefore, immediately after a cold boot, isOfflineProvider is still in its initial loading state because it has not yet received any stream event.
+
+During this initial render, the jobs screen displays its normal content (the cached jobs or the loading indicator, depending on the jobs provider), but no offline banner is shown yet. Once the connectivity stream emits a change, the provider updates and the offline banner appears if the device is offline.
+
+This is an acceptable trade-off for this assignment because the connectivity indicator is only supplementary information. The application still fulfils its primary requirement by displaying cached jobs immediately, allowing the user to continue using the app while offline. The brief delay before the offline banner appears does not prevent the app from functioning correctly.
