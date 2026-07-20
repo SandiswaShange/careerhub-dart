@@ -1,6 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:isar/isar.dart';
+import '../core/isar_provider.dart';
+import 'job_cache.dart';
 
 import 'api_result.dart';
 
@@ -40,13 +43,26 @@ Dio dio(Ref ref) {
 
 @riverpod
 JobsRepository jobsRepository(Ref ref) {
-  return JobsRepository(ref.watch(dioProvider));
+  return JobsRepository(
+    ref.watch(dioProvider),
+    ref.watch(isarProvider),
+  );
 }
 
 class JobsRepository {
-  JobsRepository(this._dio);
+  JobsRepository(
+    this._dio,
+    this._isar,
+  );
 
   final Dio _dio;
+  final Isar _isar;
+
+  Future<List<Job>> getCachedJobs() async {
+  final cachedJobs = await _isar.jobCaches.where().findAll();
+
+  return cachedJobs.map(_jobFromCache).toList();
+}
 
   Future<ApiResult<List<Job>>> getJobs() async {
     try {
@@ -56,6 +72,14 @@ class JobsRepository {
 
       final parsed = _parseResponses(responses);
       final jobs = parsed.jobDtos.map(Job.fromDto).toList();
+
+      await _isar.writeTxn(() async {
+        await _isar.jobCaches.clear();
+
+        await _isar.jobCaches.putAll(
+          jobs.map(_jobToCache).toList(),
+        );
+      });
 
       return Success(jobs);
     } on DioException catch (e) {
@@ -104,4 +128,31 @@ class JobsRepository {
         DioExceptionType.unknown =>
           'An unexpected network error occurred.',
       };
+
+    Job _jobFromCache(JobCache cache) {
+      return Job(
+        id: cache.jobId,
+        title: cache.title,
+        company: cache.company,
+        location: cache.location,
+        salary: cache.salary,
+        description: cache.description,
+        employmentType: cache.employmentType,
+        isOpen: cache.isOpen,
+        closingDate: cache.closingDate,
+      );
+    }
+
+    JobCache _jobToCache(Job job) {
+      return JobCache()
+        ..jobId = job.id
+        ..title = job.title
+        ..company = job.company
+        ..location = job.location
+        ..salary = job.salary
+        ..description = job.description
+        ..employmentType = job.employmentType
+        ..isOpen = job.isOpen
+        ..closingDate = job.closingDate;
+    }
 }
