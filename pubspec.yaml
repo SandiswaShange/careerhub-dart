@@ -41,6 +41,12 @@ dependencies:
   go_router: ^17.3.0
   freezed_annotation: ^2.4.4
   json_annotation: ^4.9.0
+  ## assignment 2.3
+  isar: ^4.0.0-dev.14
+  isar_flutter_libs: ^4.0.0-dev.14
+  path_provider: ^2.1.6
+  shared_preferences: ^2.5.5
+  connectivity_plus: ^7.3.0
 
 dev_dependencies:
   flutter_test:
@@ -57,6 +63,8 @@ dev_dependencies:
   riverpod_generator: ^2.4.3
   freezed: any
   json_serializable: any
+  # assignment 2.3
+  isar_generator: ^4.0.0-dev.14
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
