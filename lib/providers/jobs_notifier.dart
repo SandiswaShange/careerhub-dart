@@ -9,12 +9,27 @@ part 'jobs_notifier.g.dart';
 @riverpod
 class JobsNotifier extends _$JobsNotifier {
 @override
-FutureOr<List<Job>> build() async {
-  final result = await ref.watch(jobsRepositoryProvider).getJobs();
+Future<List<Job>> build() async {
+  final repository = ref.read(jobsRepositoryProvider);
 
+  // 1. Load cached jobs.
+  final cachedJobs = await repository.getCachedJobs();
+
+  // 2. Show cached jobs immediately if available.
+  if (cachedJobs.isNotEmpty) {
+    state = AsyncData(cachedJobs);
+  }
+
+  // 3. Fetch the latest jobs from the API.
+  final result = await repository.getJobs();
+
+  // 4. Return the appropriate result.
   return switch (result) {
-    Success(data: final jobs) => jobs,
-    Failure(message: final message) => throw Exception(message),
+    Success(:final data) => data,
+    Failure(:final message) =>
+      cachedJobs.isNotEmpty
+          ? cachedJobs
+          : throw Exception(message),
   };
 }
 }
