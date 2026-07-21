@@ -5,6 +5,7 @@ import '../models/job.dart';
 import '../providers/job_providers.dart';
 import '../providers/jobs_notifier.dart';
 import '../widgets/job_card.dart';
+import '../providers/filter_notifier.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -12,7 +13,7 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final jobsAsync = ref.watch(filteredJobsProvider);
-    final selectedFilter = ref.watch(selectedFilterProvider);
+    final selectedFilter = ref.watch(filterNotifierProvider);
     return SafeArea(
       child: Column(
         children: [
@@ -32,7 +33,7 @@ class HomeScreen extends ConsumerWidget {
                   label: const Text("All"),
                   selected: selectedFilter == "All",
                   onSelected: (_) {
-                    ref.read(selectedFilterProvider.notifier).state = "All";
+                    ref.read(filterNotifierProvider.notifier).select("All");
                   },
                 ),
                 const SizedBox(width: 8),
@@ -41,8 +42,7 @@ class HomeScreen extends ConsumerWidget {
                   label: const Text("Full-time"),
                   selected: selectedFilter == "Full-time",
                   onSelected: (_) {
-                    ref.read(selectedFilterProvider.notifier).state =
-                        "Full-time";
+                    ref.read(filterNotifierProvider.notifier).select("Full-time");
                   },
                 ),
                 const SizedBox(width: 8),
@@ -51,8 +51,7 @@ class HomeScreen extends ConsumerWidget {
                   label: const Text("Part-time"),
                   selected: selectedFilter == "Part-time",
                   onSelected: (_) {
-                    ref.read(selectedFilterProvider.notifier).state =
-                        "Part-time";
+                    ref.read(filterNotifierProvider.notifier).select("Part-time");
                   },
                 ),
                 const SizedBox(width: 8),
@@ -61,8 +60,7 @@ class HomeScreen extends ConsumerWidget {
                   label: const Text("Contract"),
                   selected: selectedFilter == "Contract",
                   onSelected: (_) {
-                    ref.read(selectedFilterProvider.notifier).state =
-                        "Contract";
+                    ref.read(filterNotifierProvider.notifier).select("Contract");
                   },
                 ),
                 const SizedBox(width: 8),
@@ -70,8 +68,7 @@ class HomeScreen extends ConsumerWidget {
                   label: const Text("Internship"),
                   selected: selectedFilter == "Internship",
                   onSelected: (_) {
-                    ref.read(selectedFilterProvider.notifier).state =
-                        "Internship";
+                    ref.read(filterNotifierProvider.notifier).select("Internship");
                   },
                 ),
               ],
