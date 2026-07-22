@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/job.dart';
-import 'jobs_notifier.dart';
 import 'filter_notifier.dart';
+import 'jobs_notifier.dart';
 
 final filteredJobsProvider = Provider<AsyncValue<List<Job>>>((ref) {
   final jobsAsync = ref.watch(jobsNotifierProvider);

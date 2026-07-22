@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'jobs_notifier.dart';
+part of 'auth_notifier.dart';
 
 // **************************************************************************
 // RiverpodGenerator
@@ -9,43 +9,43 @@ part of 'jobs_notifier.dart';
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 
-@ProviderFor(JobsNotifier)
-final jobsProvider = JobsNotifierProvider._();
+@ProviderFor(AuthNotifier)
+final authProvider = AuthNotifierProvider._();
 
-final class JobsNotifierProvider
-    extends $AsyncNotifierProvider<JobsNotifier, List<Job>> {
-  JobsNotifierProvider._()
+final class AuthNotifierProvider
+    extends $AsyncNotifierProvider<AuthNotifier, AuthState> {
+  AuthNotifierProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
-        name: r'jobsProvider',
+        name: r'authProvider',
         isAutoDispose: true,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
 
   @override
-  String debugGetCreateSourceHash() => _$jobsNotifierHash();
+  String debugGetCreateSourceHash() => _$authNotifierHash();
 
   @$internal
   @override
-  JobsNotifier create() => JobsNotifier();
+  AuthNotifier create() => AuthNotifier();
 }
 
-String _$jobsNotifierHash() => r'639ce956e6c08196ed9d578dfcced9ee3c2b0cda';
+String _$authNotifierHash() => r'c1e32f35a44be508640ac29007232c816d8290c9';
 
-abstract class _$JobsNotifier extends $AsyncNotifier<List<Job>> {
-  FutureOr<List<Job>> build();
+abstract class _$AuthNotifier extends $AsyncNotifier<AuthState> {
+  FutureOr<AuthState> build();
   @$mustCallSuper
   @override
   void runBuild() {
-    final ref = this.ref as $Ref<AsyncValue<List<Job>>, List<Job>>;
+    final ref = this.ref as $Ref<AsyncValue<AuthState>, AuthState>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<AsyncValue<List<Job>>, List<Job>>,
-              AsyncValue<List<Job>>,
+              AnyNotifier<AsyncValue<AuthState>, AuthState>,
+              AsyncValue<AuthState>,
               Object?,
               Object?
             >;

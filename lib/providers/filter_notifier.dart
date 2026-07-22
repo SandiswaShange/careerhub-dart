@@ -15,6 +15,7 @@ class FilterNotifier extends _$FilterNotifier {
   void select(String value) {
     final prefs = ref.read(prefsProvider);
 
+    // Fire-and-forget, as required by the assignment.
     prefs.setString('selected_filter', value);
 
     state = value;
