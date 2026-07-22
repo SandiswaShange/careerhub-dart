@@ -6,6 +6,8 @@ import '../models/job.dart';
 
 part 'jobs_notifier.g.dart';
 
+final jobsNotifierProvider = jobsProvider;
+
 @riverpod
 class JobsNotifier extends _$JobsNotifier {
 @override
