@@ -33,6 +33,8 @@ dependencies:
 
   flutter_riverpod: ^2.6.1
   riverpod: ^2.6.1
+  #4.0.3 USE ISAR COMMUNITY 3.3.0
+  #3.3.0 riverpod 3.0.0 isar
   riverpod_annotation: ^2.3.5
   dio: ^5.10.0
   # The following adds the Cupertino Icons font to your application.
