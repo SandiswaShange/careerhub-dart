@@ -312,3 +312,198 @@ The widget test is also not responsible for testing that the API returns the cor
 ![job list](image-8.png)
 ## Job details from backend
 ![job details](image-9.png)
+
+## Token storage and platform security boundaries
+### 1. Why access tokens and refresh tokens must not be stored in SharedPreferences
+
+SharedPreferences is intended for storing non-sensitive application preferences, such as theme settings or filter selections. In Assignment 2.3, storing the user's selected filter in SharedPreferences was appropriate because the data was not confidential. Access tokens and refresh tokens, however, are credentials that grant access to a user's account and authenticated API endpoints. If these tokens are exposed, an attacker can impersonate the user until the tokens expire or are revoked.
+
+On Android, SharedPreferences data is stored as an XML file in the application's private data directory:
+
+/data/data/<package-name>/shared_prefs/<file-name>.xml
+
+or equivalently:
+
+/data/user/0/<package-name>/shared_prefs/<file-name>.xml
+
+Under Android's sandboxing model, this directory is protected by Linux file permissions so that, under normal circumstances, only the application running under its own UID can access the file. Other applications cannot read it directly without elevated privileges.
+
+Despite these protections, SharedPreferences is still inappropriate for storing authentication tokens because the values are stored in plaintext within the XML file. A concrete attack scenario is a user creating an ADB backup (on devices and Android versions where application backup is enabled) or restoring application data through backup tools. Because the XML contains the tokens in plaintext, anyone with access to that backup can extract and reuse the credentials without needing to compromise the application's encryption or authentication mechanisms. Similarly, if application data is copied during device migration or extracted from a debugging-enabled device, the tokens remain immediately readable. The security of the credentials therefore depends entirely on filesystem protection rather than cryptographic protection.
+
+### 2. Why flutter_secure_storage uses the iOS Keychain
+
+On Apple platforms, flutter_secure_storage stores secrets in the iOS Keychain rather than in ordinary files. The Keychain provides protections that a normal file stored on disk does not.
+
+The first protection relates to the device passcode. Keychain items can be configured so they are only accessible when the device has been unlocked using the user's passcode or biometric authentication. If no passcode is configured, stronger protection classes cannot be used.
+
+The second protection is hardware-backed key storage. On devices that include a Secure Enclave, the cryptographic keys protecting Keychain items are managed by hardware designed to resist extraction. The encryption keys never leave the Secure Enclave in plaintext, making them significantly more difficult to compromise than keys stored only in software.
+
+Two common Keychain accessibility classes are:
+
+kSecAttrAccessibleWhenUnlocked – The item is accessible only while the device is currently unlocked. Once the device is locked, the item cannot be accessed until the user unlocks it again. This provides the strongest balance of security for frequently used credentials.
+kSecAttrAccessibleAfterFirstUnlock – The item becomes accessible after the user unlocks the device once following a reboot and remains available even while the device is subsequently locked. This is useful for background operations that need access to credentials after the initial unlock.
+
+If tokens must survive an app reinstall, neither accessibility class alone is sufficient because they control when an item can be accessed, not whether it survives deletion of the app. Persistence across reinstalls depends on whether the Keychain item is retained when the application is removed. If choosing between these two accessibility classes, kSecAttrAccessibleWhenUnlocked is generally preferred for authentication tokens because it offers stronger protection by requiring the device to be unlocked whenever the tokens are accessed.
+
+### 3. EncryptedSharedPreferences on Android
+
+On Android, flutter_secure_storage requires API level 23 (Android 6.0) or later because it uses EncryptedSharedPreferences.
+
+Unlike plain SharedPreferences, which stores values as plaintext XML, EncryptedSharedPreferences automatically encrypts both preference keys and values before writing them to disk and transparently decrypts them when they are read. This means that even if the underlying XML file is obtained, its contents are not directly usable without the encryption keys.
+
+EncryptedSharedPreferences relies on the Android Keystore System, introduced for these cryptographic capabilities in API level 23, to generate and securely store the master encryption key. The encryption keys themselves are protected by the operating system and may be hardware-backed on supported devices.
+
+If an application using flutter_secure_storage with EncryptedSharedPreferences is run on a device below API level 23, there is no compile-time warning. Instead, the failure occurs at runtime, where an UnsupportedOperationException is thrown because the required cryptographic APIs are unavailable on older Android versions.
+
+## The sealed AuthState and the two-layer state machine
+### 1. Why a Dart enum is insufficient for AuthState
+
+A Dart enum is designed to represent a fixed set of constant values, where each value is simply a named constant. While an enum could represent the four authentication states (Unauthenticated, Authenticating, Authenticated, and AuthError), it cannot associate different data with different states in a type-safe way.
+
+In this authentication system, the Authenticated state carries a User object containing information about the logged-in user, while the AuthError state carries a String describing the login failure. The other two states (Unauthenticated and Authenticating) do not require any additional data.
+
+An enum cannot express that only one particular state contains a User object and another contains an error message. Attempting to do so would require storing the payload separately, introducing nullable variables or manual type checking, which weakens type safety and increases the possibility of programming errors.
+
+A sealed class solves this problem because each subclass defines exactly the data it needs. For example, Authenticated always contains a valid User, AuthError always contains an error message, and the remaining states contain no unnecessary fields. The Dart compiler also performs exhaustive checking when switching over a sealed class, ensuring that every possible authentication state is handled.
+
+### 2. The two distinct loading states
+
+Although both represent "loading," they occur at different levels of the application and serve different purposes.
+The first loading state is the AsyncValue.loading() state produced while AuthNotifier.build() is executing during application startup.
+This occurs when the application launches and the notifier checks secure storage for previously saved authentication tokens. Until that asynchronous operation completes, Riverpod cannot determine whether the user is authenticated.
+During this period, the router's redirect callback returns null, meaning no navigation decision is made yet because the authentication status is still unknown.
+The user typically sees a splash screen, loading indicator, or the application's initial loading UI while the authentication check completes.
+
+The second loading state is the Authenticating subtype of AuthState. This state occurs after the user has already opened the login screen and presses the login button. The application is actively sending credentials to the authentication endpoint and waiting for the server's response.
+Unlike the previous loading state, the application already knows that authentication is in progress. The router therefore also returns null, allowing the user to remain on the login screen while the request completes.
+During this state, the user usually sees the login form with a loading spinner or disabled login button rather than a splash screen.
+The important distinction is that the AsyncValue.loading() state represents initial application startup, whereas Authenticating represents an active login attempt initiated by the user.
+
+### 3. Why redirect uses ref.read instead of ref.watch
+
+The GoRouter redirect callback uses ref.read(authNotifierProvider) rather than ref.watch(authNotifierProvider) because the callback should inspect the current authentication state without subscribing to provider updates.
+If ref.watch were used inside redirect, every authentication state change would trigger another provider rebuild, which would cause the router to evaluate the redirect again while the redirect itself was already running. This can create repeated redirect evaluations and unnecessary router rebuilds, potentially producing redirect loops or visible navigation flickering as the application repeatedly attempts to navigate between routes. The symptom observed by the user would typically be repeated redirects, flashing screens, or navigation behaving unpredictably during authentication changes. However, ref.watch is used inside the appRouter provider itself when watching authStateListenableProvider. This does not contradict using ref.read inside redirect. The appRouter provider watches authStateListenableProvider so that the router knows when authentication changes and should re-run its redirect logic. Once the router has been notified that authentication changed, it executes the redirect callback. Inside that callback, ref.read simply retrieves the current authentication state without establishing another dependency.
+Therefore, ref.watch determines when the router should re-evaluate redirects. ref.read determines what the current authentication state is during that evaluation. This separation prevents unnecessary rebuild cycles while ensuring redirects occur whenever the authentication state changes.
+
+## The two-Dio architecture and the concurrent 401 queue
+
+### 1. Why login() and tryRefresh() must not use dioProvider
+The application's primary dioProvider contains the AuthInterceptor, which automatically attaches access tokens to requests and handles 401 Unauthorized responses by attempting to refresh the access token. If AuthRepository.login() or AuthRepository.tryRefresh() also used this same authenticated Dio instance, an infinite refresh loop could occur.
+
+Consider the refresh process when the refresh token has already expired:
+
+1. A protected API request receives a 401 Unauthorized.
+2. AuthInterceptor.onError() intercepts the response.
+3. The interceptor calls AuthRepository.tryRefresh().
+4. tryRefresh() sends a POST /api/auth/refresh request.
+5. Because the refresh token has expired, the refresh endpoint also returns 401 Unauthorized.
+6. Since this request used the authenticated dioProvider, its response is again intercepted by AuthInterceptor.onError().
+7. The interceptor once again calls tryRefresh().
+8. The new refresh request again returns 401.
+9. Steps 6–8 repeat indefinitely.
+
+Because every failed refresh request immediately triggers another refresh attempt, the recursion never terminates. The application never returns control to the UI, eventually exhausting resources or hanging indefinitely. Using a separate plain Dio instance avoids this problem because refresh requests bypass the authentication interceptor entirely.
+
+### 2. Why the Completer queue is needed
+
+Suppose three API requests are sent simultaneously just after the access token expires.
+
+Without coordination:
+
+Request A receives 401 and calls /refresh.
+Request B receives 401 and also calls /refresh.
+Request C receives 401 and also calls /refresh.
+
+All three requests send the same refresh token to the server. Many authentication systems use refresh token rotation, where every successful refresh invalidates the previous refresh token and issues a new one.
+
+If all three refresh requests arrive nearly simultaneously:
+
+* The first request succeeds.
+* The server rotates the refresh token.
+* The remaining two requests still contain the now-invalid old refresh token.
+* They fail with 401 Unauthorized.
+* Some original API requests therefore fail even though a successful refresh has already occurred.
+
+The Completer<String> queue prevents this race condition.
+
+When the first request detects the expired access token:
+
+* It sets _isRefreshing = true.
+* It creates a Completer<String>.
+* It performs the refresh request.
+
+When the other two requests receive their 401 responses:
+
+* They detect that _isRefreshing is already true.
+* Instead of sending another refresh request, they wait on _queue.future.
+
+Once the first refresh succeeds:
+
+* The new access token is stored.
+* _queue.complete(newAccessToken) is called.
+* Every waiting request immediately receives the same token.
+* Each request retries its original API call using that new token.
+
+Only one refresh request is sent to the server while every pending request resumes using the same refreshed credentials.
+
+### 3. Why the refresh-endpoint guard exists
+
+AuthInterceptor contains a special guard that checks whether the failed request was itself the refresh endpoint.
+
+This prevents the interceptor from attempting to refresh a request that is already trying to refresh the token.
+
+Without this guard, a failed refresh request would recursively trigger another refresh attempt, causing the infinite loop described earlier.
+
+During that loop:
+
+* _isRefreshing would remain true.
+* _queue would never complete because the refresh never succeeds or fails cleanly.
+* Every future request encountering a 401 would wait indefinitely on _queue.future.
+
+As a result, all authenticated network requests would hang forever. Since the authentication failure is never propagated back to the application, the auth state would never transition to Unauthenticated, the router would never redirect to the login screen, and the user would simply experience an application that appears permanently stuck instead of being asked to log in again.
+
+## Logout ordering and the circular import problem
+
+### 1. Why providers are invalidated before logout
+
+The logout sequence intentionally invalidates application data providers before changing the authentication state. If the order were reversed, logout() would immediately change the authentication state to Unauthenticated. GoRouter would detect this change and immediately redirect the user to the login screen. During this redirect, Riverpod begins disposing of the authenticated widget tree. However, a provider such as jobsNotifierProvider may still have an active background network request that was started before logout. If that request completes while the provider is being disposed, it may briefly update its cached state or write newly received data into the local cache before disposal finishes. Although the user has already logged out, stale authenticated data may persist longer than intended. Explicitly invalidating the providers before logout cancels their current state and forces them to dispose immediately before navigation occurs. This ensures that background work is abandoned in a controlled manner and prevents authenticated data from being updated during the logout process.
+
+### 2. Why invalidation is not placed inside AuthNotifier.logout()
+
+Placing provider invalidation directly inside AuthNotifier.logout() would introduce a circular dependency between the authentication layer and the application data layer.
+
+A typical dependency chain would be:
+
+auth_notifier.dart
+    imports auth_providers.dart
+
+auth_providers.dart
+    imports jobs_notifier.dart
+
+jobs_notifier.dart
+    imports jobs_repository.dart
+
+jobs_repository.dart
+    imports auth_notifier.dart
+
+or another equivalent cycle that eventually returns to auth_notifier.dart.
+
+Dart libraries are expected to form an acyclic dependency graph. Circular imports frequently produce compile-time errors involving cyclic dependencies or partially initialized libraries, and even when compilation succeeds, they can result in unexpected initialization order and unavailable symbols during library loading.
+
+Keeping provider invalidation in the UI layer avoids this dependency because the UI already has access to both the authentication notifier and the application data providers.
+
+### 3. Why logout sets Unauthenticated instead of AsyncError
+
+Logging out is a normal, intentional user action rather than an application failure. An AsyncError represents an unexpected problem such as a network failure, corrupted storage, or an unhandled exception. Using AsyncError for logout would incorrectly signal that authentication failed due to an error rather than because the user deliberately ended the session.
+
+Therefore, logout() correctly sets AsyncData(Unauthenticated())
+
+This informs the router that the user is simply no longer authenticated.
+
+After logout:
+
+* filteredJobsProvider is invalidated and no longer exposes the previously loaded jobs to the authenticated portion of the application.
+* The local Isar cache still contains cached job data because logout clears authentication credentials, not offline job data.
+* Secure storage no longer contains the access or refresh tokens.
+
+On the next cold boot, if the user opens the application on a new device (or any installation where secure storage is empty), AuthNotifier.build() finds no stored credentials and immediately enters the Unauthenticated state. The router therefore navigates directly to the login screen. Although the Isar database may still contain cached jobs on that installation, those cached jobs are not exposed through the authenticated application flow because the user must successfully authenticate before protected features become available.
